@@ -9,6 +9,7 @@ import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpProtocolVersion
 import io.ktor.http.contentType
+import io.ktor.http.setCookie
 
 infix fun HttpResponse.shouldHaveETag(etag: String) = this should haveETag(etag)
 infix fun HttpResponse.shouldNotHaveETag(etag: String) = this shouldNot haveETag(etag)
@@ -81,6 +82,22 @@ fun haveContentType(contentType: ContentType) = object : Matcher<HttpResponse> {
          value.contentType() == contentType,
          { "Response should have ContentType $contentType= but was ${value.contentType()}" },
          { "Response should not have ContentType $contentType" },
+      )
+   }
+}
+
+fun HttpResponse.shouldHaveCookie(name: String, cookieValue: String? = null) = this should haveCookie(name, cookieValue)
+fun HttpResponse.shouldNotHaveCookie(name: String, cookieValue: String? = null) = this shouldNot haveCookie(name, cookieValue)
+fun haveCookie(name: String, cookieValue: String? = null) = object : Matcher<HttpResponse> {
+   override fun test(value: HttpResponse): MatcherResult {
+      val passed = when (cookieValue) {
+         null -> value.setCookie().any { it.name == name }
+         else -> value.setCookie().any { it.name == name && it.value == cookieValue }
+      }
+      return MatcherResult(
+         passed,
+         { "Response should have cookie with name $name" },
+         { "Response should not have cookie with name $name" },
       )
    }
 }

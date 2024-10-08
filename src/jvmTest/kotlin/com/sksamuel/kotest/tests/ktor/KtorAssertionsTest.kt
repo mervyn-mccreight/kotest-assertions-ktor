@@ -1,15 +1,19 @@
 package com.sksamuel.kotest.tests.ktor
 
+import io.kotest.assertions.ktor.client.shouldHaveCookie
+import io.kotest.assertions.ktor.client.shouldHaveHeader
+import io.kotest.assertions.ktor.client.shouldHaveStatus
+import io.kotest.assertions.ktor.client.shouldNotHaveCookie
+import io.kotest.assertions.ktor.client.shouldNotHaveHeader
 import io.kotest.assertions.ktor.shouldHaveContent
 import io.kotest.assertions.ktor.shouldHaveContentType
 import io.kotest.assertions.ktor.shouldHaveCookie
-import io.kotest.assertions.ktor.shouldHaveHeader
-import io.kotest.assertions.ktor.shouldHaveStatus
 import io.kotest.assertions.ktor.shouldNotHaveContentType
-import io.kotest.assertions.ktor.shouldNotHaveHeader
+import io.kotest.assertions.ktor.shouldNotHaveCookie
 import io.kotest.assertions.throwables.shouldThrow
 import io.kotest.core.spec.style.StringSpec
 import io.kotest.matchers.shouldBe
+import io.ktor.client.request.get
 import io.ktor.http.ContentType
 import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
@@ -21,6 +25,7 @@ import io.ktor.server.request.uri
 import io.ktor.server.response.header
 import io.ktor.server.response.respondText
 import io.ktor.server.testing.handleRequest
+import io.ktor.server.testing.testApplication
 import io.ktor.server.testing.withTestApplication
 import java.nio.charset.Charset
 
@@ -37,40 +42,39 @@ fun Application.testableModule() {
 class KtorAssertionsTest : StringSpec({
 
    "test status code matcher" {
-      withTestApplication({ testableModule() }) {
-         handleRequest(HttpMethod.Get, "/").apply {
-            response shouldHaveStatus 200
-         }
+      testApplication {
+         application { testableModule() }
+         client.get("/") shouldHaveStatus 200
       }
    }
 
    "test status code matcher (enum version)" {
-      withTestApplication({ testableModule() }) {
-         handleRequest(HttpMethod.Get, "/").apply {
-            response shouldHaveStatus HttpStatusCode.OK
-         }
+      testApplication {
+         application { testableModule() }
+         client.get("/") shouldHaveStatus HttpStatusCode.OK
       }
    }
 
    "test headers matcher" {
-      withTestApplication({ testableModule() }) {
-         handleRequest(HttpMethod.Get, "/").apply {
-            response.shouldHaveHeader("wibble", "wobble")
-         }
+      testApplication {
+         application { testableModule() }
+         client
+            .get("/")
+            .shouldHaveHeader("wibble", "wobble")
       }
    }
 
    "test headers matcher fail" {
-      withTestApplication({ testableModule() }) {
-         handleRequest(HttpMethod.Get, "/").apply {
-            shouldThrow<AssertionError> {
-               response.shouldHaveHeader("fail_name", "fail_value")
-            }.message shouldBe "Response should have header fail_name=fail_value but fail_name=null"
+      testApplication {
+         application { testableModule() }
+         val response = client.get("/")
+         shouldThrow<AssertionError> {
+            response.shouldHaveHeader("fail_name", "fail_value")
+         }.message shouldBe "Response should have header fail_name=fail_value but fail_name=null"
 
-            shouldThrow<AssertionError> {
-               response.shouldNotHaveHeader("wibble", "wobble")
-            }.message shouldBe "Response should not have header wibble=wobble"
-         }
+         shouldThrow<AssertionError> {
+            response.shouldNotHaveHeader("wibble", "wobble")
+         }.message shouldBe "Response should not have header wibble=wobble"
       }
    }
 
@@ -83,9 +87,40 @@ class KtorAssertionsTest : StringSpec({
    }
 
    "test cookie values" {
+      testApplication {
+         application { testableModule() }
+         client.get("/").shouldHaveCookie("mycookie", "myvalue")
+      }
+
       withTestApplication({ testableModule() }) {
          handleRequest(HttpMethod.Get, "/").apply {
             response.shouldHaveCookie("mycookie", "myvalue")
+         }
+      }
+   }
+
+   "test cookie matcher fail" {
+      testApplication {
+         application { testableModule() }
+         val response = client.get("/")
+         shouldThrow<AssertionError> {
+            response.shouldHaveCookie("fail_name", "fail_value")
+         }.message shouldBe "Response should have cookie with name fail_name"
+
+         shouldThrow<AssertionError> {
+            response.shouldNotHaveCookie("mycookie", "myvalue")
+         }.message shouldBe "Response should not have cookie with name mycookie"
+      }
+
+      withTestApplication({ testableModule() }) {
+         handleRequest(HttpMethod.Get, "/").apply {
+            shouldThrow<AssertionError> {
+               response.shouldHaveCookie("fail_name", "fail_value")
+            }.message shouldBe "Response should have cookie with name fail_name"
+
+            shouldThrow<AssertionError> {
+               response.shouldNotHaveCookie("mycookie", "myvalue")
+            }.message shouldBe "Response should not have cookie with name mycookie"
          }
       }
    }

@@ -116,9 +116,13 @@ fun haveHeader(headerName: String, headerValue: String) = object : Matcher<TestA
    }
 }
 
+@Suppress("DeprecatedCallableAddReplaceWith")
+@Deprecated("Please use new `testApplication` API: https://ktor.io/docs/migrating-2.html#testing-api")
 fun TestApplicationResponse.shouldHaveCookie(name: String, cookieValue: String? = null) =
    this should haveCookie(name, cookieValue)
 
+@Suppress("DeprecatedCallableAddReplaceWith")
+@Deprecated("Please use new `testApplication` API: https://ktor.io/docs/migrating-2.html#testing-api")
 fun TestApplicationResponse.shouldNotHaveCookie(name: String, cookieValue: String? = null) =
    this shouldNot haveCookie(name, cookieValue)
 
@@ -133,7 +137,7 @@ fun haveCookie(name: String, cookieValue: String? = null) = object : Matcher<App
       return MatcherResult(
          passed,
          { "Response should have cookie with name $name" },
-         { "Response should have cookie with name $name" },
+         { "Response should not have cookie with name $name" },
       )
    }
 }
